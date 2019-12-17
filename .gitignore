@@ -5,3 +5,5 @@ testing
 data_latih.py
 data_uji.py
 create_data.py
+face_encodings.pickle
+face_names.pickle

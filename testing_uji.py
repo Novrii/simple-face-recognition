@@ -45,7 +45,7 @@ for(top, right, bottom, left), face_encoding in zip(face_locations, face_encodin
   # Draw box
   draw.rectangle(((left, top), (right, bottom)), outline=(255,255,0))
 
-  font = ImageFont.truetype(font="OpenSans.ttf", size=15)
+  font = ImageFont.truetype(font="OpenSansSemibold.ttf", size=15)
   # Draw label
   text_width, text_height = draw.textsize(name)
   draw.rectangle(((left,bottom - text_height - 10), (right, bottom)), fill=(255,255,0), outline=(255,255,0))

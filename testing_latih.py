@@ -9,12 +9,6 @@ gambar_dir = os.path.join(BASE_DIR, "img\known")
 known_face_encodings = []
 known_face_names = []
 
-# print(gambar_dir)
-
-# for root, dirs, files in os.walk(gambar_dir):
-#     for file in files:
-#         print(os.path.join(root, file))
-
 for root, dirs, files in os.walk(gambar_dir):
     for file in files:
         if file.endswith("jpg"): # only jpg file
@@ -29,7 +23,8 @@ for root, dirs, files in os.walk(gambar_dir):
             # print(label)
             print(f"[INFO] Load {path}")
             load_image = face_recognition.load_image_file(path)
-            face_encoding = face_recognition.face_encodings(load_image)[0]
+            location_face = face_recognition.face_locations(load_image, model="cnn")
+            face_encoding = face_recognition.face_encodings(load_image, location_face)[0]
             known_face_encodings.append(face_encoding)
             known_face_names.append(name)
 
