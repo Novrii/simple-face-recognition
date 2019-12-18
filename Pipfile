@@ -10,6 +10,7 @@ dlib = {file = "https://files.pythonhosted.org/packages/0e/ce/f8a3cff33ac03a8219
 face-recognition = "*"
 opencv-python = "*"
 opencv-contrib-python = "*"
+scikit-learn = "*"
 
 [requires]
 python_version = "3.6"
