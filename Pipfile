@@ -11,6 +11,7 @@ face-recognition = "*"
 opencv-python = "*"
 opencv-contrib-python = "*"
 scikit-learn = "*"
+pyrebase = "*"
 
 [requires]
 python_version = "3.6"
