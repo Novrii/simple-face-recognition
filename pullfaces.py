@@ -1,7 +1,7 @@
 from PIL import Image
 import face_recognition
 
-image = face_recognition.load_image_file('./img/groups/team1.jpg')
+image = face_recognition.load_image_file('./knn/IMG_CROP_E.jpg')
 face_locations = face_recognition.face_locations(image)
 
 for face_location in face_locations:
@@ -10,4 +10,4 @@ for face_location in face_locations:
     face_image = image[top:bottom, left:right]
     pil_image = Image.fromarray(face_image)
     # pil_image.show()
-    pil_image.save(f'{top}.jpg')
+    pil_image.save(f'knn/{top}.jpg')

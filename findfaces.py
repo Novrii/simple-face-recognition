@@ -1,6 +1,7 @@
 import face_recognition
 import os
 import cv2
+import json
 
 image = face_recognition.load_image_file('./img/groups/team2.jpg')
 face_locations = face_recognition.face_locations(image)
@@ -49,13 +50,27 @@ def cek_size(size, img):
 # Array of coords of each face
 # print(face_locations)
 
-print(f'There are {len(face_locations)} people in this image')
+# print(f'There are {len(face_locations)} people in this image')
 
-path = './data_latih_kelas_e/MUHAMMAD HAFIZD ANSHARI/-Lvx1f7zABzldy7K4iqy-saya2.jpg'
-# testing size
-size = os.path.getsize(path)
-print(f"Size: {size/1024}")
-# resize
-gray_img = cv2.imread(path)
+# path = './data_latih_kelas_e/MUHAMMAD HAFIZD ANSHARI/-Lvx1f7zABzldy7K4iqy-saya2.jpg'
+# # testing size
+# size = os.path.getsize(path)
+# print(f"Size: {size/1024}")
+# # resize
+# gray_img = cv2.imread(path)
 
-cek_size(size, gray_img)
+# cek_size(size, gray_img)
+
+data = {}
+
+with open('hasil.txt') as json_file:
+    data = json.load(json_file)
+
+data[len(data)+1]={
+    "nama":"testing2"
+}
+
+with open('hasil.txt', 'w') as json_file:
+    json.dump(data, json_file)
+
+print(len(data))

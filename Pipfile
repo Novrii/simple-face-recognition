@@ -13,6 +13,7 @@ opencv-contrib-python = "*"
 scikit-learn = "*"
 pyrebase = "*"
 requests = "*"
+flask = "*"
 
 [requires]
 python_version = "3.6"
