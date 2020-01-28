@@ -10,6 +10,5 @@ face_names.pickle
 knn
 face_recognition_knn.py
 trained_knn_model.clf
-app.py
 testing.py
 kelas_e_Keamanan Informasi
