@@ -1,6 +1,6 @@
 # Simple Face Recognition
 
-Description project soon
+Simple face recognition for attendance system, detect and recognize multiple face in one picture.
 
 ## Getting Started
 
@@ -55,6 +55,7 @@ Give an example
 ## Deployment
 
 Add additional notes about how to deploy this on a live system
+* (https://medium.com/faun/deploy-flask-app-with-nginx-using-gunicorn-7fda4f50066a) - Deployment reference
 
 ## Built With
 
