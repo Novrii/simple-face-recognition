@@ -55,7 +55,7 @@ Give an example
 ## Deployment
 
 Add additional notes about how to deploy this on a live system
-* (https://medium.com/faun/deploy-flask-app-with-nginx-using-gunicorn-7fda4f50066a) - Deployment reference
+* [Deploy Flask App with nginx gunicorn](https://medium.com/faun/deploy-flask-app-with-nginx-using-gunicorn-7fda4f50066a) - Deployment reference
 
 ## Built With
 
