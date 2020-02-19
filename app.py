@@ -106,7 +106,7 @@ def train(train_dir, model_save_path=None, n_neighbors=None, knn_algo='ball_tree
             cek_size(size, img, path_name, file_name)
             # load image use face_recognition
             image = face_recognition.load_image_file(img_path)
-            face_bounding_boxes = face_recognition.face_locations(image)
+            face_bounding_boxes = face_recognition.face_locations(image) # default model="hog", pilihan lain "cnn"
 
             if len(face_bounding_boxes) != 1:
                 # If there are no people (or too many people) in a training image, skip the image.
@@ -150,7 +150,7 @@ def predict(X_img_path, knn_clf=None, model_path=None, distance_threshold=0.6):
     
     # Load image file and find face locations
     X_img = face_recognition.load_image_file(X_img_path)
-    X_face_locations = face_recognition.face_locations(X_img)
+    X_face_locations = face_recognition.face_locations(X_img) # default model="hog", pilihan lain "cnn"
 
     # If no faces are found in the image, return an empty result.
     if len(X_face_locations) == 0:
@@ -167,7 +167,7 @@ def predict(X_img_path, knn_clf=None, model_path=None, distance_threshold=0.6):
     # Predict classes and remove classifications that aren't within the threshold
     return [(pred, loc, distance) if rec else ("unknown", loc, distance) for pred, loc, rec, distance in zip(knn_clf.predict(faces_encodings), X_face_locations, are_matches, distances)]
 
-def show_prediction_labels_on_image(img_path, predictions, kelas, path_hasil_uji, presensi):
+def show_prediction_labels_on_image(img_path, predictions, kelas, path_hasil_uji_presensi, presensi):
 
     pil_image = Image.open(img_path).convert("RGB")
     draw = ImageDraw.Draw(pil_image)
@@ -183,7 +183,7 @@ def show_prediction_labels_on_image(img_path, predictions, kelas, path_hasil_uji
         # # simpan crop
         # print(f"[CROP] {name}")
         # # save di hasil uji
-        # crop_image.save(f"{path_hasil_uji}/{name}.jpg")
+        # crop_image.save(f"{path_hasil_uji_presensi}/{name}.jpg")
         # # save di firebase kelas/hasil/id_presensi
         # # download url menggunakan NAMA MAHASISWA
         # storage.child("uploads/kelas/hasil/"+presensi+"/"+name+".jpg").put(path_hasil_latih+"/"+name+".jpg")
@@ -210,18 +210,27 @@ def show_prediction_labels_on_image(img_path, predictions, kelas, path_hasil_uji
 
     # Save Image di Local dan Firebase
     unix = time.time()
-    pil_image.save(path_hasil_uji+"/kelas_"+kelas+"_"+str(unix)+".jpg")
+    pil_image.save(path_hasil_uji_presensi+"/kelas_"+kelas+"_"+str(unix)+".jpg")
     # save firebase
-    storage.child("uploads/kelas/hasil/"+presensi+"/foto/kelas_"+kelas+"_"+str(unix)+".jpg").put(path_hasil_uji+"/kelas_"+kelas+"_"+str(unix)+".jpg")
+    upload = storage.child("uploads/kelas/hasil/"+presensi+"/foto/kelas_"+kelas+"_"+str(unix)+".jpg").put(path_hasil_uji_presensi+"/kelas_"+kelas+"_"+str(unix)+".jpg")
+    # get url gambar, simpan di url_gambar.txt
+    get_url = storage.child("uploads/kelas/hasil/"+presensi+"/foto/kelas_"+kelas+"_"+str(unix)+".jpg").get_url(upload['downloadTokens'])
     data = {
-        "kelas" : "kelas_"+kelas+"_"+str(unix)+".jpg"
+        "kelas" : "kelas_"+kelas+"_"+str(unix)+".jpg",
+        "url" : get_url
     }
-    database.child("uploads/kelas/hasil/"+presensi).child("foto").set(data)
+    database.child("uploads/kelas/hasil/"+presensi).child("foto").push(data)
+    
+
 
 @app.route('/')
 def index():
     
-    return "Rest API Wajah Smart Presensi :)"
+    return "Rest API Wajah Smart Presensi"
+
+@app.route('/test')
+def test():
+    return "Testing Route"
 
 # buat data 
 @app.route('/buat/<kelas>/<matkul>', methods=['GET'])
@@ -232,13 +241,25 @@ def buat(kelas, matkul):
     req_kelas = requests.get('https://topapp.id/top-presence/api/v1/ruangan/find-kelas?kelas='+str(kelas))
     json_req_kelas = req_kelas.json()
     master_req_kelas = json_req_kelas['master']
-    id_kelas = master_req_kelas[0]['id_kelas']
+    if not len(master_req_kelas) == 0:
+        id_kelas = master_req_kelas[0]['id_kelas']
+    else:
+        response.append({
+            "status":"error - id kelas"
+        })
+        return jsonify(response)
 
     # select id matkul
     req_matkul = requests.get('https://topapp.id/top-presence/api/v1/ruangan/find-matkul?matkul='+str(matkul))
     json_req_matkul = req_matkul.json()
     master_req_matkul = json_req_matkul['master']
-    id_matkul = master_req_matkul[0]['id_matakuliah']
+    if not len(master_req_matkul) == 0:
+        id_matkul = master_req_matkul[0]['id_matakuliah']
+    else:
+        response.append({
+            "status":"error - id mata kuliah"
+        })
+        return jsonify(response)
 
     # select id mengajar
     # revisi, select id mengajar, juga harus pakai id_mata_kuliah
@@ -312,12 +333,15 @@ def latih(kelas, presensi, matkul):
     path_hasil = os.path.join(path_kelas, "hasil")
     if not os.path.exists(path_hasil):
         os.mkdir(path_hasil)
+
     path_hasil_latih = os.path.join(path_hasil, "latih")
     if not os.path.exists(path_hasil_latih):
         os.mkdir(path_hasil_latih)
+
     path_data = os.path.join(path_kelas, "data")
     if not os.path.exists(path_data):
         os.mkdir(path_data)
+
     path_data_latih = os.path.join(path_data, "latih")
     if not os.path.exists(path_data_latih):
         os.mkdir(path_data_latih)
@@ -342,15 +366,15 @@ def latih(kelas, presensi, matkul):
             "model" : "trained_knn_model.clf"
         }
         database.child("uploads/kelas/latih/"+presensi).child("latih").set(data)
-        print("Data Training Ada")
+        print("Data Training Sudah Ada")
         response.append({
             "status":"success"
         })
 
     return jsonify(response)
 
-@app.route('/prediksi/<kelas>/<presensi>/<key>/<matkul>', methods=['GET'])
-def prediksi(kelas, presensi, key, matkul):
+@app.route('/prediksi/<kelas>/<presensi>/<matkul>', methods=['GET'])
+def prediksi(kelas, presensi, matkul):
     hasil = {}
     response = []
     # direktori tambah matkul setelah kelas, utk tidak redundant
@@ -358,46 +382,65 @@ def prediksi(kelas, presensi, key, matkul):
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
     if not os.path.exists(path_kelas):
+        print(f"[CREATE] {path_kelas}")
         os.mkdir(path_kelas)
 
     path_data = os.path.join(path_kelas, "data")
     if not os.path.exists(path_data):
+        print(f"[CREATE] {path_data}")
         os.mkdir(path_data)
 
     path_data_latih = os.path.join(path_data, "latih")
     if not os.path.exists(path_data_latih):
+        print(f"[CREATE] {path_data_latih}")
         os.mkdir(path_data_latih)
 
     path_data_uji = os.path.join(path_data, "uji")
     if not os.path.exists(path_data_uji):
+        print(f"[CREATE] {path_data_uji}")
         os.mkdir(path_data_uji)
 
     path_hasil = os.path.join(path_kelas, "hasil")
     if not os.path.exists(path_hasil):
+        print(f"[CREATE] {path_hasil}")
         os.mkdir(path_hasil)
 
     path_hasil_latih = os.path.join(path_hasil, "latih")
     if not os.path.exists(path_hasil_latih):
+        print(f"[CREATE] {path_hasil_latih}")
         os.mkdir(path_hasil_latih)
         
-    path_data_prediksi = os.path.join(path_kelas, path_data_uji+"/"+key+".jpg")
+    # buat direktori data/uji/id_presensi
+    path_data_uji_presensi = os.path.join(path_data_uji, str(presensi))
+    if not os.path.exists(path_data_uji_presensi):
+        print(f"[CREATE] {path_data_uji_presensi}")
+        os.mkdir(path_data_uji_presensi)
+
+    # path_data_prediksi = os.path.join(path_kelas, path_data_uji+"/"+key+".jpg")
 
     # download semua gambar presensi kelas
     data_kelas = database.child("uploads/kelas/"+presensi).get()
+    for data in data_kelas.each():
+        key = data.key()
+        value = data.val()
+        url = value['imageUrl']
+        # download gambar semua
+        print(f"[DOWNLOAD] {key}")
+        urllib.request.urlretrieve(url, path_data_uji_presensi+"/"+key+".jpg")
     
-    # download gambar kelas
-    print("[DOWNLOAD] Data Uji")
+    # download gambar kelas satu persatu
+    # print("[DOWNLOAD] Data Uji"+path_data_prediksi)
     
-    upload_kelas = database.child("uploads/kelas/"+presensi).get()
-    url = upload_kelas.val()[key]['imageUrl']
-    file_name = upload_kelas.val()[key]['name']
-    urllib.request.urlretrieve(url, path_data_prediksi)
+    # upload_kelas = database.child("uploads/kelas/"+presensi).get()
+    # url = upload_kelas.val()[key]['imageUrl']
+    # file_name = upload_kelas.val()[key]['name']
+    # urllib.request.urlretrieve(url, path_data_prediksi)
     # download data training jika tidak ada
     if not os.path.exists(path_hasil_latih+"/trained_knn_model.clf"):
         storage.child("uploads/kelas/latih/"+presensi+"/trained_knn_model.clf").download(path_hasil_latih+"/trained_knn_model.clf")
 
-    for image_file in os.listdir(path_data_uji):
-        full_file_path = os.path.join(path_data_uji, image_file)
+    for image_file in os.listdir(path_data_uji_presensi):
+        full_file_path = os.path.join(path_data_uji_presensi, image_file)
 
         print("Prediksi gambar {}".format(image_file))
 
@@ -407,26 +450,53 @@ def prediksi(kelas, presensi, key, matkul):
         if not os.path.exists(path_hasil_uji):
             print(f"[CREATED] {path_hasil_uji}")
             os.mkdir(path_hasil_uji)
+        # buat folder hasil/uji/id_presensi
+        path_hasil_uji_presensi = os.path.join(path_hasil_uji, str(presensi))
+        if not os.path.exists(path_hasil_uji_presensi):
+            print(f"[CREATED] {path_hasil_uji_presensi}")
+            os.mkdir(path_hasil_uji_presensi)
 
         # print hasil di terminal
         # hitung = 1
         for nama, (top, right, bottom, left), dist in prediksi:
 
             print("[DETECT] Wajah {} : {},{}".format(nama, left, top))
-            # get crop wajah
+            # get hasil crop wajah
             image_uji = face_recognition.load_image_file(full_file_path)
             image_wajah = image_uji[top:bottom, left:right]
             pil_image = Image.fromarray(image_wajah)
-            pil_image.save(f"{path_data_latih}/{nama}/{top}-{presensi}.jpg") # simpan crop wajah di direktori
+            pil_image.save(f"{path_data_latih}/{nama}/{top}-{presensi}.jpg") # simpan hasil crop wajah di direktori
             # simpan di firebase
             req_getnim = requests.get('https://topapp.id/top-presence/api/v1/ruangan/find-nim-mahasiswa?mahasiswa='+str(nama)) # NAMA HARUS BENAR
             json_req_getnim = req_getnim.json()
             nim = json_req_getnim['master'][0]['nim']
             upload = storage.child(f"uploads/{nim}/{top}-{presensi}.jpg").put(f"{path_data_latih}/{nama}/{top}-{presensi}.jpg")
             get_url = storage.child(f"uploads/{nim}/{top}-{presensi}.jpg").get_url(upload['downloadTokens'])
+            # get url foto sesuai nama
+            get_url_nama = ""
+            # data_mhs = database.child(f"uploads/{nim}").get()
+            # for mhs in data_mhs.each():
+            #     value = mhs.val()
+            #     get_url_nama = value['imageUrl'] # get url terakhir dari loop
+            # get crop gambar
+            # for gambar in os.listdir(path_data_latih+"/"+str(nama)):
+                # for img_path in image_files_in_folder(os.path.join(path_data_latih, path_nama)):
+            gambar = face_recognition.load_image_file(path_data_latih+"/"+nama+"/"+gambar)
+            gmbr_face_loc = face_recognition.face_locations(gambar)
+            if not os.path.exists(f"{path_data_latih}/{nama}/{nama}.jpg"): # jika sudah ada gambar yg tersimpan, maka lanjut ke folder lain
+
+                for face_loc in gmbr_face_loc:
+                    top, right, bottom, left = face_loc
+
+                    face_image = gambar[top:bottom, left:right]
+                    pil_images = Image.fromarray(face_image)
+                    pil_images.save(f"{path_data_latih}/{nama}/{nama}.jpg") # simpan gambar wajah db
+                    upload = storage.child(f"uploads/{nim}/{nama}.jpg").put(f"{path_data_latih}/{nama}/{nama}.jpg")
+                    get_url_nama = storage.child(f"uploads/{nim}/{nama}.jpg").get_url(upload['downloadTokens'])
+
             print(f"[UPLOADED] {nim} success")
             # cek hasil.txt
-            if not os.path.exists(path_hasil_uji+"/hasil.txt"):
+            if not os.path.exists(f"{path_hasil_uji_presensi}/hasil.txt"):
                 # data = {}
                 # data[] = {
                 #     "nama" : nama,
@@ -437,16 +507,17 @@ def prediksi(kelas, presensi, key, matkul):
                 data.append({
                     "nama" : nama,
                     "nim" : nim,
-                    "url" : get_url
+                    "url" : get_url,
+                    "url_nama" : get_url_nama
                 })
-                with open(path_hasil_uji+"/hasil.txt", 'w') as hasil_file:
+                with open(f"{path_hasil_uji_presensi}/hasil.txt", 'w') as hasil_file:
                     print("[FIRST] saved data")
                     json.dump(data, hasil_file)
             else:
                 # load data dan tambah isi hasil
                 # data = {}
                 data = []
-                with open(path_hasil_uji+"/hasil.txt") as hasil_file:
+                with open(f"{path_hasil_uji_presensi}/hasil.txt") as hasil_file:
                     data = json.load(hasil_file)
                     
                 # data[] = {
@@ -457,15 +528,16 @@ def prediksi(kelas, presensi, key, matkul):
                 data.append({
                     "nama" : nama,
                     "nim" : nim,
-                    "url" : get_url
+                    "url" : get_url,
+                    "url_nama" : get_url_nama
                 })
                 # save data 
-                with open(path_hasil_uji+"/hasil.txt", 'w') as hasil_file:
+                with open(f"{path_hasil_uji_presensi}/hasil.txt", 'w') as hasil_file:
                     print("[EDIT] saved data")
                     json.dump(data, hasil_file)
             # hitung += 1
         
-        # with open(path_hasil_uji+"/hasil.txt", 'w') as hasil_file:
+        # with open(path_hasil_uji_presensi+"/hasil.txt", 'w') as hasil_file:
         #     print("[SAVED] file hasil.txt")
         #     json.dump(hasil, hasil_file)
         # simpan di firebase
@@ -473,10 +545,10 @@ def prediksi(kelas, presensi, key, matkul):
             "hasil":"hasil.txt"
         }
         database.child("uploads/kelas/hasil/"+presensi).child("hasil").set(data_hasil)
-        storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").put(path_hasil_uji+"/hasil.txt")
-        print("[SUCCESS] upload hasil.txt")
+        storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").put(path_hasil_uji_presensi+"/hasil.txt")
+        print(f"[SUCCESS] upload hasil.txt")
         
-        show_prediction_labels_on_image(os.path.join(path_data_uji, image_file), prediksi, kelas, path_hasil_uji, presensi)
+        show_prediction_labels_on_image(os.path.join(path_data_uji_presensi, image_file), prediksi, kelas, path_hasil_uji_presensi, presensi)
 
     response.append({
         "status":"success"
@@ -491,28 +563,37 @@ def hasil_presensi(kelas, presensi, matkul):
 
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
-    if not os.path.exists(path_kelas):
-        os.mkdir(path_kelas)
+    # if not os.path.exists(path_kelas):
+    #     print(f"[CREATED] {path_kelas}")
+    #     os.mkdir(path_kelas)
     
     path_hasil = os.path.join(path_kelas, "hasil")
-    if not os.path.exists(path_hasil):
-        os.mkdir(path_hasil)
+    # if not os.path.exists(path_hasil):
+    #     print(f"[CREATED] {path_hasil}")
+    #     os.mkdir(path_hasil)
     
     path_hasil_uji = os.path.join(path_hasil, "uji")
-    if not os.path.exists(path_hasil_uji):
-        print(f"[CREATED] {path_hasil_uji}")
-        os.mkdir(path_hasil_uji)
+    # if not os.path.exists(path_hasil_uji):
+    #     print(f"[CREATED] {path_hasil_uji}")
+    #     os.mkdir(path_hasil_uji)
+
+    path_hasil_uji_presensi = os.path.join(path_hasil_uji, str(presensi))
+    # if not os.path.exists(path_hasil_uji_presensi):
+    #     print(f"[CREATED] {path_hasil_uji_presensi}")
+    #     os.mkdir(path_hasil_uji_presensi)
     
-    if not os.path.exists(path_hasil_uji+"/hasil.txt"):
+    if not os.path.exists(path_hasil_uji_presensi+"/hasil.txt"):
         # download dari firebase
-        # storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").download(path_hasil_uji+"/hasil.txt")
+        # storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").download(path_hasil_uji_presensi+"/hasil.txt")
         print("[INFO] empty hasil")
+        data.append({
+            "info":"Data Kosong"
+        })
     else:
-        with open(path_hasil_uji+"/hasil.txt") as hasil_file:
+        with open(path_hasil_uji_presensi+"/hasil.txt") as hasil_file:
             data = json.load(hasil_file)
 
     return jsonify(data)
-
 
 # route isi presensi
 @app.route('/isipresensi/<kelas>/<presensi>/<matkul>', methods=['GET'])
@@ -521,25 +602,32 @@ def isi_presensi(kelas, presensi, matkul):
     
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
-    if not os.path.exists(path_kelas):
-        os.mkdir(path_kelas)
+    # if not os.path.exists(path_kelas):
+    #     print(f"[CREATED] {path_kelas}")
+    #     os.mkdir(path_kelas)
     
     path_hasil = os.path.join(path_kelas, "hasil")
-    if not os.path.exists(path_hasil):
-        os.mkdir(path_hasil)
+    # if not os.path.exists(path_hasil):
+    #     print(f"[CREATED] {path_hasil}")
+    #     os.mkdir(path_hasil)
     
     path_hasil_uji = os.path.join(path_hasil, "uji")
-    if not os.path.exists(path_hasil_uji):
-        print(f"[CREATED] {path_hasil_uji}")
-        os.mkdir(path_hasil_uji)
+    # if not os.path.exists(path_hasil_uji):
+    #     print(f"[CREATED] {path_hasil_uji}")
+    #     os.mkdir(path_hasil_uji)
+
+    path_hasil_uji_presensi = os.path.join(path_hasil_uji, str(presensi))
+    # if not os.path.exists(path_hasil_uji_presensi):
+    #     print(f"[CREATED] {path_hasil_uji_presensi}")
+    #     os.mkdir(path_hasil_uji_presensi)
     
-    if not os.path.exists(path_hasil_uji+"/hasil.txt"):
+    if not os.path.exists(path_hasil_uji_presensi+"/hasil.txt"):
         # download dari firebase
-        storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").download(path_hasil_uji+"/hasil.txt")
+        storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").download(path_hasil_uji_presensi+"/hasil.txt")
     
     # loop di hasil.txt dan isi presensi
     data = []
-    with open(path_hasil_uji+"/hasil.txt") as hasil_file:
+    with open(path_hasil_uji_presensi+"/hasil.txt") as hasil_file:
         data = json.load(hasil_file)
     
     for x in data:
@@ -548,7 +636,7 @@ def isi_presensi(kelas, presensi, matkul):
             'nim' : str(x['nim'])
         }
         # cek jika sudah terisi hadir
-        req_cek_presensi = requests.get('https://topapp.id/top-presence/api/v1/ruangan/find-mhs-detail-presensi?id_p='+str(presensi)+'&mhs='+str(nim))
+        req_cek_presensi = requests.get('https://topapp.id/top-presence/api/v1/ruangan/find-mhs-detail-presensi?id_p='+str(presensi)+'&mhs='+str(x['nim']))
         json_req_cek_presensi = req_cek_presensi.json()
         master_req_cek_presensi = json_req_cek_presensi['master']
         if master_req_cek_presensi[0]['status'] == 'Tidak Hadir':
@@ -572,7 +660,6 @@ def isi_presensi(kelas, presensi, matkul):
 
     return jsonify(response_hasil)
 
-
 # route validasi kesalahan prediksi (hapus isi yg tidak valid)/ edit hasil.txt
 @app.route('/validasi/<kelas>/<presensi>/<matkul>/<nim>', methods=['GET'])
 def validasi(kelas, presensi, matkul, nim):
@@ -580,25 +667,32 @@ def validasi(kelas, presensi, matkul, nim):
 
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
-    if not os.path.exists(path_kelas):
-        os.mkdir(path_kelas)
+    # if not os.path.exists(path_kelas):
+    #     print(f"[CREATED] {path_kelas}")
+    #     os.mkdir(path_kelas)
     
     path_hasil = os.path.join(path_kelas, "hasil")
-    if not os.path.exists(path_hasil):
-        os.mkdir(path_hasil)
+    # if not os.path.exists(path_hasil):
+    #     print(f"[CREATED] {path_hasil}")
+    #     os.mkdir(path_hasil)
     
     path_hasil_uji = os.path.join(path_hasil, "uji")
-    if not os.path.exists(path_hasil_uji):
-        print(f"[CREATED] {path_hasil_uji}")
-        os.mkdir(path_hasil_uji)
+    # if not os.path.exists(path_hasil_uji):
+    #     print(f"[CREATED] {path_hasil_uji}")
+    #     os.mkdir(path_hasil_uji)
     
-    if not os.path.exists(path_hasil_uji+"/hasil.txt"):
+    path_hasil_uji_presensi = os.path.join(path_hasil_uji, str(presensi))
+    # if not os.path.exists(path_hasil_uji_presensi):
+    #     print(f"[CREATED] {path_hasil_uji_presensi}")
+    #     os.mkdir(path_hasil_uji_presensi)
+    
+    if not os.path.exists(path_hasil_uji_presensi+"/hasil.txt"):
         # download dari firebase
-        storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").download(path_hasil_uji+"/hasil.txt")
+        storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").download(path_hasil_uji_presensi+"/hasil.txt")
     
     # edit isi hasil.txt
     data = []
-    with open(path_hasil_uji+"/hasil.txt") as hasil_file:
+    with open(path_hasil_uji_presensi+"/hasil.txt") as hasil_file:
         data = json.load(hasil_file)
     
     for x in data:
@@ -606,18 +700,31 @@ def validasi(kelas, presensi, matkul, nim):
             data.remove(x)
             print(f"[INFO] Data {x['nim']} dihapus")
         
-    
     # save data 
-    with open(path_hasil_uji+"/hasil.txt", 'w') as hasil_file:
+    with open(path_hasil_uji_presensi+"/hasil.txt", 'w') as hasil_file:
         print("[NEW] saved new data")
         json.dump(data, hasil_file)
-    storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").put(path_hasil_uji+"/hasil.txt") # update data firebase
+    storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").put(path_hasil_uji_presensi+"/hasil.txt") # update data firebase
     
     # print(data[1]['nim'] == nim)
 
     return jsonify(data)
 
+# route get hasil foto presensi
+@app.route('/foto/<presensi>', methods=['GET'])
+def hasil_uji_foto(presensi):
+    data = []
+    data_foto = database.child(f"uploads/kelas/hasil/{presensi}/foto").get()
+    for x in data_foto.each():
+        value = x.val()
+        # print(value['url'])
+        data.append({
+            "url":value['url']
+        })
+        
+    return jsonify(data)
+
 # Run Server
 if __name__ == '__main__':
-#   app.run()
+    # app.run(host='0.0.0.0', port=8000) # production topappvps
     app.run(debug=True) # development
