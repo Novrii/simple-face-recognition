@@ -325,8 +325,8 @@ def buat(kelas, matkul):
     return jsonify(response)
 
 # latih data dan buat model data latih
-@app.route('/latih/<kelas>/<presensi>/<matkul>', methods=['GET'])
-def latih(kelas, presensi, matkul):
+@app.route('/latih/<kelas>/<matkul>', methods=['GET'])
+def latih(kelas, matkul):
     response = []
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
@@ -351,21 +351,21 @@ def latih(kelas, presensi, matkul):
         klasifikasi = train(path_kelas+"/data/latih", model_save_path=path_hasil_latih+"/trained_knn_model.clf", n_neighbors=2)
         print(f"Training Kelas {kelas} Selesai")
         # simpan data latih ke firebase
-        storage.child("uploads/kelas/latih/"+presensi+"/trained_knn_model.clf").put(path_hasil_latih+"/trained_knn_model.clf")
+        storage.child("uploads/kelas/latih/"+kelas+"_"+matkul+"/trained_knn_model.clf").put(path_hasil_latih+"/trained_knn_model.clf")
         data = {
             "model" : "trained_knn_model.clf"
         }
-        database.child("uploads/kelas/latih/"+presensi).child("latih").set(data)
+        database.child("uploads/kelas/latih/"+kelas+"_"+matkul).child("latih").set(data)
         response.append({
             "status":"success"
         })
     else:
         # simpan data ke firebase jika hosting menggunakan heroku
-        storage.child("uploads/kelas/latih/"+presensi+"/trained_knn_model.clf").put(path_hasil_latih+"/trained_knn_model.clf")
+        storage.child("uploads/kelas/latih/"+kelas+"_"+matkul+"/trained_knn_model.clf").put(path_hasil_latih+"/trained_knn_model.clf")
         data = {
             "model" : "trained_knn_model.clf"
         }
-        database.child("uploads/kelas/latih/"+presensi).child("latih").set(data)
+        database.child("uploads/kelas/latih/"+kelas+"_"+matkul).child("latih").set(data)
         print("Data Training Sudah Ada")
         response.append({
             "status":"success"
@@ -437,7 +437,7 @@ def prediksi(kelas, presensi, matkul):
     # urllib.request.urlretrieve(url, path_data_prediksi)
     # download data training jika tidak ada
     if not os.path.exists(path_hasil_latih+"/trained_knn_model.clf"):
-        storage.child("uploads/kelas/latih/"+presensi+"/trained_knn_model.clf").download(path_hasil_latih+"/trained_knn_model.clf")
+        storage.child("uploads/kelas/latih/"+kelas+"_"+matkul+"/trained_knn_model.clf").download(path_hasil_latih+"/trained_knn_model.clf")
 
     for image_file in os.listdir(path_data_uji_presensi):
         full_file_path = os.path.join(path_data_uji_presensi, image_file)
@@ -479,20 +479,24 @@ def prediksi(kelas, presensi, matkul):
             #     value = mhs.val()
             #     get_url_nama = value['imageUrl'] # get url terakhir dari loop
             # get crop gambar
-            # for gambar in os.listdir(path_data_latih+"/"+str(nama)):
+            for gambar in os.listdir(path_data_latih+"/"+str(nama)):
                 # for img_path in image_files_in_folder(os.path.join(path_data_latih, path_nama)):
-            gambar = face_recognition.load_image_file(path_data_latih+"/"+nama+"/"+gambar)
-            gmbr_face_loc = face_recognition.face_locations(gambar)
-            if not os.path.exists(f"{path_data_latih}/{nama}/{nama}.jpg"): # jika sudah ada gambar yg tersimpan, maka lanjut ke folder lain
+                    if not os.path.exists(f"{path_data_latih}/{nama}/{nama}.jpg"): # jika sudah ada gambar yg tersimpan, maka lanjut ke folder lain
+                        image = face_recognition.load_image_file(path_data_latih+"/"+nama+"/"+gambar)
+                        gmbr_face_loc = face_recognition.face_locations(image)
+                        if len(gmbr_face_loc) == 1:
+                            print(len(gmbr_face_loc))
+                            for face_loc in gmbr_face_loc:
+                                top, right, bottom, left = face_loc
 
-                for face_loc in gmbr_face_loc:
-                    top, right, bottom, left = face_loc
-
-                    face_image = gambar[top:bottom, left:right]
-                    pil_images = Image.fromarray(face_image)
-                    pil_images.save(f"{path_data_latih}/{nama}/{nama}.jpg") # simpan gambar wajah db
-                    upload = storage.child(f"uploads/{nim}/{nama}.jpg").put(f"{path_data_latih}/{nama}/{nama}.jpg")
-                    get_url_nama = storage.child(f"uploads/{nim}/{nama}.jpg").get_url(upload['downloadTokens'])
+                                face_image = image[top:bottom, left:right]
+                                pil_images = Image.fromarray(face_image)
+                                pil_images.save(f"{path_data_latih}/{nama}/{nama}.jpg") # simpan gambar wajah db
+                                upload = storage.child(f"uploads/{nim}/{nama}.jpg").put(f"{path_data_latih}/{nama}/{nama}.jpg")
+                                get_url_nama = storage.child(f"uploads/{nim}/{nama}.jpg").get_url(upload['downloadTokens'])
+                    else:
+                        upload = storage.child(f"uploads/{nim}/{nama}.jpg").put(f"{path_data_latih}/{nama}/{nama}.jpg")
+                        get_url_nama = storage.child(f"uploads/{nim}/{nama}.jpg").get_url(upload['downloadTokens'])
 
             print(f"[UPLOADED] {nim} success")
             # cek hasil.txt
