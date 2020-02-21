@@ -12,25 +12,25 @@ What things you need to install the software and how to install them
 
 ```
 Python-3.6
+Cmake
 ```
 
 ### Installing
 
-A step by step series of examples that tell you how to get a development env running
+First, Install python-3.6
 
-Say what the step will be
-
-```
-Give the example
-```
-
-And repeat
+Then, Install Cmake
+* [Cmake](https://cmake.org/install/) - Documentation install cmake
 
 ```
-until finished
+pip install -r requirements.txt
 ```
 
-End with an example of getting some data out of the system or using it for a little demo
+Dlib required boost
+* [Boost](https://stackoverflow.com/questions/12578499/how-to-install-boost-on-ubuntu) - Stackoverflow - how to install libboost on ubuntu
+
+
+Then Success!
 
 ## Running the tests
 
@@ -59,7 +59,7 @@ Add additional notes about how to deploy this on a live system
 
 ## Built With
 
-* [face_recognition](https://github.com/ageitgey/face_recognition) - The library used
+* [Face Recognition](https://github.com/ageitgey/face_recognition) - The library used
 * [OpenCV](https://github.com/opencv) - The library used
 * [Dlib](http://dlib.net/) - The library used
 * [Flask](https://flask.palletsprojects.com/en/1.1.x/) - The Framework used

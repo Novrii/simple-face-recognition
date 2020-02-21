@@ -332,7 +332,11 @@ def latih(kelas, matkul):
     path_kelas = os.path.join(BASEDIR, dir_kelas)
     path_hasil = os.path.join(path_kelas, "hasil")
     if not os.path.exists(path_hasil):
-        os.mkdir(path_hasil)
+        response.append({
+            "status":"Not found "+dir_kelas+" (Buat data dulu)"
+        })
+        return jsonify(response)
+        # os.mkdir(path_hasil)
 
     path_hasil_latih = os.path.join(path_hasil, "latih")
     if not os.path.exists(path_hasil_latih):
@@ -382,8 +386,12 @@ def prediksi(kelas, presensi, matkul):
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
     if not os.path.exists(path_kelas):
-        print(f"[CREATE] {path_kelas}")
-        os.mkdir(path_kelas)
+        # print(f"[CREATE] {path_kelas}")
+        response.append({
+            "status":"Not found "+dir_kelas+" (Buat data dulu)"
+        })
+        return jsonify(response)
+        # os.mkdir(path_kelas)
 
     path_data = os.path.join(path_kelas, "data")
     if not os.path.exists(path_data):
@@ -485,7 +493,7 @@ def prediksi(kelas, presensi, matkul):
                         image = face_recognition.load_image_file(path_data_latih+"/"+nama+"/"+gambar)
                         gmbr_face_loc = face_recognition.face_locations(image)
                         if len(gmbr_face_loc) == 1:
-                            print(len(gmbr_face_loc))
+                            # print(len(gmbr_face_loc))
                             for face_loc in gmbr_face_loc:
                                 top, right, bottom, left = face_loc
 
@@ -567,7 +575,11 @@ def hasil_presensi(kelas, presensi, matkul):
 
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
-    # if not os.path.exists(path_kelas):
+    if not os.path.exists(path_kelas):
+        data.append({
+            "status":"Not found "+path_kelas+" (Buat data dulu)"
+        })
+        return jsonify(data)
     #     print(f"[CREATED] {path_kelas}")
     #     os.mkdir(path_kelas)
     
@@ -591,7 +603,7 @@ def hasil_presensi(kelas, presensi, matkul):
         # storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").download(path_hasil_uji_presensi+"/hasil.txt")
         print("[INFO] empty hasil")
         data.append({
-            "info":"Data Kosong"
+            "status":"Data hasil Kosong"
         })
     else:
         with open(path_hasil_uji_presensi+"/hasil.txt") as hasil_file:
@@ -606,7 +618,11 @@ def isi_presensi(kelas, presensi, matkul):
     
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
-    # if not os.path.exists(path_kelas):
+    if not os.path.exists(path_kelas):
+        response_hasil.append({
+            "status":"Not found "+path_kelas+" (Buat data dulu)"
+        })
+        return jsonify(response_hasil)
     #     print(f"[CREATED] {path_kelas}")
     #     os.mkdir(path_kelas)
     
@@ -667,11 +683,15 @@ def isi_presensi(kelas, presensi, matkul):
 # route validasi kesalahan prediksi (hapus isi yg tidak valid)/ edit hasil.txt
 @app.route('/validasi/<kelas>/<presensi>/<matkul>/<nim>', methods=['GET'])
 def validasi(kelas, presensi, matkul, nim):
-    # response = []
+    data = []
 
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
-    # if not os.path.exists(path_kelas):
+    if not os.path.exists(path_kelas):
+        data.append({
+            "status":"Not found "+path_kelas+" (Buat data dulu)"
+        })
+        return jsonify(data)
     #     print(f"[CREATED] {path_kelas}")
     #     os.mkdir(path_kelas)
     
@@ -695,7 +715,7 @@ def validasi(kelas, presensi, matkul, nim):
         storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").download(path_hasil_uji_presensi+"/hasil.txt")
     
     # edit isi hasil.txt
-    data = []
+    
     with open(path_hasil_uji_presensi+"/hasil.txt") as hasil_file:
         data = json.load(hasil_file)
     
@@ -727,6 +747,29 @@ def hasil_uji_foto(presensi):
         })
         
     return jsonify(data)
+    
+# route Single Face
+
+# route buat data
+@app.route('/buat_auth', methods=['GET'])
+def buat_auth():
+
+    return jsonify("testing")
+# route latih data
+@app.route('/latih_auth', methods=['GET'])
+def latih_auth():
+
+    return jsonify("testing")
+# route prediksi data
+@app.route('/prediksi_auth', methods=['GET'])
+def prediksi_auth():
+
+    return jsonify("testing")
+# route cek presensi detail
+@app.route('/cek_auth', methods=['GET'])
+def cek_auth():
+
+    return jsonify("testing")
 
 # Run Server
 if __name__ == '__main__':
