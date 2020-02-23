@@ -331,12 +331,15 @@ def latih(kelas, matkul):
     dir_kelas = "kelas_"+kelas+"_"+matkul
     path_kelas = os.path.join(BASEDIR, dir_kelas)
     path_hasil = os.path.join(path_kelas, "hasil")
-    if not os.path.exists(path_hasil):
+    if not os.path.exists(dir_kelas):
         response.append({
             "status":"Not found "+dir_kelas+" (Buat data dulu)"
         })
         return jsonify(response)
         # os.mkdir(path_hasil)
+    
+    if not os.path.exists(path_hasil):
+        os.mkdir(path_hasil)
 
     path_hasil_latih = os.path.join(path_hasil, "latih")
     if not os.path.exists(path_hasil_latih):
@@ -388,7 +391,7 @@ def prediksi(kelas, presensi, matkul):
     if not os.path.exists(path_kelas):
         # print(f"[CREATE] {path_kelas}")
         response.append({
-            "status":"Not found "+dir_kelas+" (Buat data dulu)"
+            "status":"Not found "+path_kelas+" (Buat data dulu)"
         })
         return jsonify(response)
         # os.mkdir(path_kelas)
