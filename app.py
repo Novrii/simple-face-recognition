@@ -284,43 +284,48 @@ def buat(kelas, matkul):
     path_kelas = os.path.join(BASEDIR, dir_kelas)
 
     if not os.path.exists(path_kelas):
+        print(f"[CREATED] {path_kelas}")
         os.mkdir(path_kelas)
-        for y in master_req_mengambil:
-            req_mahasiswa = requests.get('https://topapp.id/top-presence/api/v1/ruangan/find-mahasiswa?mahasiswa='+str(y['nim']))
-            json_req_mahasiswa = req_mahasiswa.json()
-            master_req_mahasiswa = json_req_mahasiswa['master']
-            nama_mhs = master_req_mahasiswa[0]['nama']
-            # buat path mahasiswa menggunakan nama
-            path_data = os.path.join(path_kelas, "data")
-            if not os.path.exists(path_data):
-                os.mkdir(path_data)
-            path_data_latih = os.path.join(path_data, "latih")
-            if not os.path.exists(path_data_latih):
-                os.mkdir(path_data_latih)
-            path_mahasiswa = os.path.join(path_data_latih, str(nama_mhs))
+    for y in master_req_mengambil:
+        req_mahasiswa = requests.get('https://topapp.id/top-presence/api/v1/ruangan/find-mahasiswa?mahasiswa='+str(y['nim']))
+        json_req_mahasiswa = req_mahasiswa.json()
+        master_req_mahasiswa = json_req_mahasiswa['master']
+        nama_mhs = master_req_mahasiswa[0]['nama']
+        # buat path mahasiswa menggunakan nama
+        path_data = os.path.join(path_kelas, "data")
+        if not os.path.exists(path_data):
+            os.mkdir(path_data)
+
+        path_data_latih = os.path.join(path_data, "latih")
+        if not os.path.exists(path_data_latih):
+            os.mkdir(path_data_latih)
+
+        path_mahasiswa = os.path.join(path_data_latih, str(nama_mhs))
+        if not os.path.exists(path_mahasiswa):
             os.mkdir(path_mahasiswa)
             print(f"Created {path_mahasiswa} = {y['nim']}")
 
-            # download gambar dari firebase
-            # akses folder uploads di firebase
-            uploads = database.child("uploads").get()
+        # download gambar dari firebase
+        # akses folder uploads di firebase
+        uploads = database.child("uploads").get()
 
-            for i in uploads.each():
-                if str(y['nim']) == i.key():
-                    for j in i.val():
-                        url = i.val()[j]['imageUrl']
-                        file_name = i.val()[j]['name']
+        for i in uploads.each():
+            if str(y['nim']) == i.key():
+                for j in i.val():
+                    url = i.val()[j]['imageUrl']
+                    file_name = i.val()[j]['name']
+                    if not os.path.exists(path_mahasiswa+"/"+j+"-"+file_name+".jpg"):
                         urllib.request.urlretrieve(url, path_mahasiswa+"/"+j+"-"+file_name+".jpg") # nama file yg disimpan
                         # download gambar yg telah diupload mahasiswa
                         print("[SUCCESS] download "+file_name+".jpg berhasil")
-        response.append({
-            "status":"success"
-        })
-    else:
-        print("[INFO] Data Tersedia")
-        response.append({
-            "status":"success"
-        })
+    response.append({
+        "status":"success"
+    })
+    # else:
+    #     print("[INFO] Data Tersedia")
+    #     response.append({
+    #         "status":"success"
+    #     })
     
     return jsonify(response)
 
@@ -480,6 +485,16 @@ def prediksi(kelas, presensi, matkul):
             # simpan di firebase
             req_getnim = requests.get('https://topapp.id/top-presence/api/v1/ruangan/find-nim-mahasiswa?mahasiswa='+str(nama)) # NAMA HARUS BENAR
             json_req_getnim = req_getnim.json()
+            if (len(json_req_getnim['master']) == 0): # cek jika kosong
+                revisi = nama+"." # kesalahan umum, karena kurang titik di nama
+                req_getnim = requests.get('https://topapp.id/top-presence/api/v1/ruangan/find-nim-mahasiswa?mahasiswa='+str(revisi)) # NAMA HARUS BENAR
+                json_req_getnim = req_getnim.json()
+                if (len(json_req_getnim['master']) == 0): # jika salah lagi, return response
+                    response.append({
+                        "status":"Not found "+revisi
+                    })
+                    
+                    return jsonify(response)
             nim = json_req_getnim['master'][0]['nim']
             upload = storage.child(f"uploads/{nim}/{top}-{presensi}.jpg").put(f"{path_data_latih}/{nama}/{top}-{presensi}.jpg")
             get_url = storage.child(f"uploads/{nim}/{top}-{presensi}.jpg").get_url(upload['downloadTokens'])
