@@ -4,9 +4,6 @@ data_latih_kelas_e
 testing
 data_latih.py
 data_uji.py
-create_data.py
-face_encodings.pickle
-face_names.pickle
 knn
 face_recognition_knn.py
 trained_knn_model.clf

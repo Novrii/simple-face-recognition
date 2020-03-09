@@ -15,9 +15,11 @@ from PIL import Image, ImageDraw, ImageFont
 import face_recognition
 from face_recognition.face_recognition_cli import image_files_in_folder
 import time
+from flask_apscheduler import APScheduler
 
 # Init app
 app = Flask(__name__)
+scheduler = APScheduler()
 
 # Init Firebase
 config = {
@@ -167,7 +169,7 @@ def predict(X_img_path, knn_clf=None, model_path=None, distance_threshold=0.6):
     # Predict classes and remove classifications that aren't within the threshold
     return [(pred, loc, distance) if rec else ("unknown", loc, distance) for pred, loc, rec, distance in zip(knn_clf.predict(faces_encodings), X_face_locations, are_matches, distances)]
 
-def show_prediction_labels_on_image(img_path, predictions, kelas=None, path_hasil_uji_presensi, presensi):
+def show_prediction_labels_on_image(img_path, predictions, kelas, path_hasil_uji_presensi, presensi):
 
     pil_image = Image.open(img_path).convert("RGB")
     draw = ImageDraw.Draw(pil_image)
@@ -224,7 +226,6 @@ def show_prediction_labels_on_image(img_path, predictions, kelas=None, path_hasi
     else: # untuk hasil single auth
         pil_image.save(path_hasil_uji_presensi+"/"+presensi+"_"+str(unix)+".jpg")
         # save firebase
-
 
 @app.route('/')
 def index():
@@ -939,11 +940,17 @@ def single_auth(nim, presensi):
         storage.child("uploads/single/"+presensi+"/hasil/"+nim+"/hasil.txt").put(path_hasil_uji_presensi+"/hasil.txt")
         print(f"[SUCCESS] upload hasil.txt")
         # Display results overlaid on an image
-        show_prediction_labels_on_image(os.path.join(path_data_uji_presensi, image_file), predictions, path_hasil_uji_presensi, presensi)
+        show_prediction_labels_on_image(os.path.join(path_data_uji_presensi, image_file), predictions, None, path_hasil_uji_presensi, presensi)
 
-    response.append({
-        "status":"success"
-    })
+    # tampilkan hasil prediksi 
+    if not os.path.exists(path_hasil_uji_presensi+"/hasil.txt"):
+        # download dari firebase
+        # storage.child("uploads/kelas/hasil/"+presensi+"/hasil.txt").download(path_hasil_uji_presensi+"/hasil.txt")
+        print("[INFO] empty hasil")
+        
+    else:
+        with open(path_hasil_uji_presensi+"/hasil.txt") as hasil_file:
+            response = json.load(hasil_file)
 
     return jsonify(response)
     
@@ -959,7 +966,12 @@ def konfirmasi_auth():
 
     return jsonify("testing")
 
+def buat_latih_data():
+    print("cek cek")
+
 # Run Server
 if __name__ == '__main__':
+    scheduler.add_job(id='Buat&Latih Data', func = buat_latih_data, trigger='cron', hour = 1)
+    scheduler.start()
     # app.run(host='0.0.0.0', port=8000) # production topappvps
     app.run(debug=True) # development
