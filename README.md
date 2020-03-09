@@ -1,6 +1,6 @@
 # Simple Face Recognition
 
-Simple face recognition for attendance system, detect and recognize multiple face in one picture.
+> Simple face recognition for attendance system, detect and recognize multiple face in one picture.
 
 ### Prerequisites
 
