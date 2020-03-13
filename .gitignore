@@ -9,3 +9,5 @@ face_recognition_knn.py
 trained_knn_model.clf
 testing.py
 kelas_e_Keamanan Informasi
+single
+app.py
