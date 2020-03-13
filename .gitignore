@@ -4,7 +4,6 @@ data_latih_kelas_e
 testing
 data_latih.py
 data_uji.py
-knn
 face_recognition_knn.py
 trained_knn_model.clf
 testing.py
