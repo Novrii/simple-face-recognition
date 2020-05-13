@@ -1,4 +1,5 @@
 .vscode
+__pycache__
 data_latih_kelas_c
 data_latih_kelas_e
 testing
@@ -9,4 +10,5 @@ trained_knn_model.clf
 testing.py
 kelas_e_Keamanan Informasi
 single
-app.py
+test
+secrets.py

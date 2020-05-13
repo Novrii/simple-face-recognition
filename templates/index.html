@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="../static/style.css" />
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <title>SmartPresensi | Train Data</title>
+</head>
+<body>
+    <img src="../static/logo.gif" alt="Lexus" class="logo" />
+    
+    <div class="container">
+        {% if message %}
+            <p class="message">{{ message }}</p>
+            <a href="/" class="btn" style="text-decoration: none;">Kembali</a>
+        {% else %}
+
+        <h1>Latih Data</h1>
+
+        <form action="/buatlatih" method="POST">
+            <div class="form-group">
+                <h3>
+                    Kelas
+                </h3>
+                <select name="kelas">
+                    <option value="">Pilih Kelas</option>
+                    {% for x in kelas %}
+                        <option value="{{ x }}">{{ x }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <h3>Mata Kuliah</h3>
+                <select name="matkul">
+                    <option value="">Pilih Matakuliah</option>
+                    {% for x in matkul %}
+                        <option value="{{ x }}">{{ x }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <input type="submit" value="Latih" class="btn"  />
+        </form>
+        {% endif %}
+    </div>
+</body>
+</html>
