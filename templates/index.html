@@ -7,17 +7,39 @@
     <link rel="stylesheet" href="../static/style.css" />
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <title>SmartPresensi | Train Data</title>
+    <style>
+        .btn {
+            display: block;
+            width: 100%;
+            background: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            margin-top: 1rem;
+        }
+    </style>
 </head>
 <body>
-    <img src="../static/logo.gif" alt="Lexus" class="logo" />
+    <img src="../static/logo.gif" alt="Lexus" class="logo" style="margin-top: 30px;"/>
     
     <div class="container">
-        {% if message %}
+        {% if awal %}
+            <!-- <p class="message">{{ awal }}</p> -->
+            <form action="/listkelas" method="POST">
+                <div class="form-group">
+                    <!-- <h3>Novri</h3> -->
+                    <input type="password" name="sandi">
+                </div>
+                <input type="submit" value="Next" class="btn"  />
+            </form>
+        {% elif message %}
             <p class="message">{{ message }}</p>
             <a href="/" class="btn" style="text-decoration: none;">Kembali</a>
         {% else %}
 
-        <h1>Latih Data</h1>
+        <h1>Latih Data Kelas</h1>
 
         <form action="/buatlatih" method="POST">
             <div class="form-group">
@@ -42,6 +64,8 @@
             </div>
             <input type="submit" value="Latih" class="btn"  />
         </form>
+        <h1>Latih Semua Wajah</h1>
+        <a href="/latihsemua" class="btn" style="text-decoration: none;text-align:center;">Latih Data</a>
         {% endif %}
     </div>
 </body>
