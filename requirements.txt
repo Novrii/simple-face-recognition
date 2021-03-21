@@ -15,6 +15,8 @@ MarkupSafe==1.1.1
 Mastodon.py==1.5.0
 numpy==1.18.1
 oauth2client==3.0.0
+opencv-contrib-python==4.5.1.48
+opencv-python==4.5.1.48
 Pillow==7.0.0
 protobuf==3.11.3
 pyasn1==0.4.8
